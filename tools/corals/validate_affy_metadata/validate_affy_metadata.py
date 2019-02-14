@@ -161,6 +161,10 @@ with open(args.input, "r") as ih:
         # Required and validated.
         healing_time = items[29]
         accumulated_msgs = validate_decimal(i, healing_time, accumulated_msgs)
+        # Optional.
+        dna_extraction = items[30]
+        # Optional.
+        dna_contentration = items[31]
 
 if len(accumulated_msgs) > 0:
     stop_error(accumulated_msgs)
