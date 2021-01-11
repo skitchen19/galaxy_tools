@@ -1,0 +1,145 @@
+<tool id="methylit_unique_granges" name="MethylIT: Build unique GRange" version="1.0.0">
+    <description>from a list of GRange objects</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="2.48.0">bioconductor-biobase</requirement>
+        <requirement type="package" version="0.34.0">bioconductor-biocgenerics</requirement>
+        <requirement type="package" version="1.22.0">bioconductor-biocparallel</requirement>
+        <requirement type="package" version="1.40.0">bioconductor-genomicranges</requirement>
+        <requirement type="package" version="1.24.0">bioconductor-genomeinfodb</requirement>
+        <requirement type="package" version="2.22.1">bioconductor-iranges</requirement>
+        <requirement type="package" version="0.26.0">bioconductor-s4vectors</requirement>
+        <requirement type="package" version="1.0.1">r-dplyr</requirement>
+        <requirement type="package" version="0.3.2.1">r-methylit</requirement>
+        <requirement type="package" version="1.6.6">r-optparse</requirement>
+        <requirement type="package" version="1.4.4">r-reshape2</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+Rscript '$__tool_directory__/methylit_unique_granges.R'
+--input '$input'
+--ncols $ncols
+#if str($specify_columns_cond.specify_columns) == "yes":
+    --columns '$specify_columns_cond.columns'
+#end if
+#if str($specify_chromosomes_cond.specify_chromosomes) == "yes":
+    --chromosomes '$specify_chromosomes_cond.chromosomes'
+#end if
+#if str($overlap_cond.overlap) == "yes":
+    --maxgap $overlap_cond.maxgap
+    --minoverlap $overlap_cond.minoverlap
+#end if
+#if str($specify_missing_cond.specify_missing) == "yes":
+    --missing $specify_missing_cond.missing
+#end if
+--overlap_type '$overlap_type'
+--select '$select'
+--ignore_strand '$ignore_strand'
+--num_cores \${GALAXY_SLOTS:-4}
+--output_data_frame '$output_data_frame'
+--output_grange '$output_grange'
+--script_dir '$__tool_directory__'
+#if str($output_log_cond.output_log) == 'yes':
+    &>'$output_log';
+#else:
+    &>output_log.txt;
+    if [[ $? -ne 0 ]]; then
+        cp output_log.txt '$output_data_frame';
+        cp output_log.txt '$output_grange';
+    fi
+#end if
+]]></command>
+    <inputs>
+        <param name="input" type="data" format="infdiv,potdimp" label="Information divergence estimator file" help="Produced by the MethylIT estimate divergence tool"/>
+        <param name="ncols" type="integer" value="0" min="0" label="Number of columns to use from the metadata of each GRange" help="--ncols: if set to 0, all columns from each GRange will be included in the output"/>
+        <conditional name="specify_columns_cond">
+            <param name="specify_columns" type="select" label="Specify columns to use from the meta-column of each GRange object?">
+                <option value="no" selected="true">No</option>
+                <option value="yes">Yes</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="columns" type="text" value="" label="Comma-separated list of numbers of each column to use from the GRange objects" help="--columns"/>
+            </when>
+        </conditional>
+        <conditional name="specify_chromosomes_cond">
+            <param name="specify_chromosomes" type="select" label="Specify chromosomes to be used?">
+                <option value="no" selected="true">No</option>
+                <option value="yes">Yes</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="chromosomes" type="text" value="" label="Comma-separated list of chromosomes to use from the GRange objects" help="--chromosomes"/>
+            </when>
+        </conditional>
+        <conditional name="overlap_cond">
+            <param name="overlap" type="select" label="Specify overlap interval?" help="Positions within this interval will be considered overlapping">
+                <option value="no" selected="true">No</option>
+                <option value="yes">Yes</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="maxgap" type="integer" value="0" min="0" label="Maximum gap for finding interval overlaps between GRange objects" help="--maxgap"/>
+                <param name="minoverlap" type="integer" value="1" min="1" label="Minimum gap for finding interval overlaps between GRange objects" help="--minoverlap"/>
+            </when>
+        </conditional>
+        <conditional name="specify_missing_cond">
+            <param name="specify_missing" type="select" label="Specify value to us for GRange objects with missing values?">
+                <option value="no" selected="true">No</option>
+                <option value="yes">Yes</option>
+            </param>
+            <when value="no"/>
+            <when value="yes">
+                <param name="missing" type="select" label="Value to use for missing values in GRange objects" help="--missing">
+                    <option value="0" selected="true">0</option>
+                    <option value="NA">NA</option>
+                </param>
+            </when>
+        </conditional>
+        <param name="overlap_type" type="select" label="Overlap type" help="--type">
+            <option value="any" selected="true">Any</option>
+            <option value="start">Start</option>
+            <option value="end">End</option>
+            <option value="within">Within</option>
+            <option value="equal">Equal</option>
+        </param>
+        <param name="select" type="select" label="Select value" help="--select">
+            <option value="all" selected="true">All</option>
+            <option value="first">First</option>
+            <option value="last">Last</option>
+            <option value="arbitrary">Arbitrary</option>
+        </param>
+        <param name="ignore_strand" type="select" label="Ignore strand?" help="--ignore.strand">
+            <option value="no" selected="true">No</option>
+            <option value="yes">Yes</option>
+        </param>
+        <conditional name="output_log_cond">
+            <param name="output_log" type="select" label="Output process log?">
+                <option value="yes" selected="true">Yes</option>
+                <option value="no">No</option>
+            </param>
+            <when value="yes"/>
+            <when value="no"/>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} (process log) on ${on_string}">
+            <filter>output_log_cond['output_log'] == 'yes'</filter>
+        </data>
+        <data name="output_data_frame" format="tabular" label="${tool.name} (data frame) on ${on_string}"/>
+        <data name="output_grange" format="grange"/>
+    </outputs>
+    <tests>
+    </tests>
+    <help>
+**What it does**
+
+Build a unique GRange object from an information divergence estimator input file.  The metadata of each of these GRange objects
+must have one or more columns to yield a unique GRange object with metadata columns from the original GRange objects.  Otherwise,
+a unique GRange object will becreated  without metadata columns. Additionally, all metadata must be the same class (i.e. numeric
+characters, or factor).
+    </help>
+    <expand macro="citations"/>
+</tool>
+

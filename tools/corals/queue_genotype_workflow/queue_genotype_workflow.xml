@@ -2,7 +2,6 @@
     <description></description>
     <command detect_errors="exit_code"><![CDATA[
 #set history_id = $__app__.security.encode_id($affy_metadata.history.id)
-#set user_id = $__app__.security.encode_id('__user_id__')
 python $__tool_directory__/queue_genotype_workflow.py
 --affy_metadata '$affy_metadata'
 --annot '$annot'
@@ -17,14 +16,16 @@ python $__tool_directory__/queue_genotype_workflow.py
 --sample_attributes '$sample_attributes'
 --snp-posteriors '$snp_posteriors'
 --summary '$summary'
---user_id $user_id
+#if str($output_nj_phylogeny_tree) == "yes":
+    --output_nj_phylogeny_tree '$output_nj_phylogeny_tree'
+#end if
 --output '$output']]></command>
     <configfiles>
         <configfile name="get_user_api_key"><![CDATA[#from galaxy.managers import api_keys#${api_keys.ApiKeyManager( $__app__ ).get_or_create_api_key($__user__)} ]]></configfile>
     </configfiles>
     <inputs>
         <param name="affy_metadata" type="data" format="tabular" label="Affymetrix 96 well plate metadata file" help="The word 'metadata' must be in the file name.">
-            <validator type="expression" message="96 well plate data must have 32 columns and no more than 96 lines of data"><![CDATA[value is not None and value.metadata.columns==32 and value.metadata.data_lines<=96]]></validator>
+            <validator type="expression" message="96 well plate data must have 32 columns"><![CDATA[value is not None and value.metadata.columns==32]]></validator>
         </param>
         <param name="sample_attributes" type="data" format="tabular" label="Sample attributes file" help="The word 'attributes' must be in the file name."/>
         <param name="annot" type="data" format="csv" label="Probeset annotation file" help="The word 'annotation' must be in the file name."/>
@@ -42,28 +43,42 @@ python $__tool_directory__/queue_genotype_workflow.py
                 <validator type="no_options" message="No cached Fasta genome references are available for the build associated with the selected probeset annotation file." />
             </options>
         </param>
+        <param name="output_nj_phylogeny_tree" type="select" display="radio" label="Plot neighbor-joining phylogeny tree in Corals Multilocus Genotype outputs?" help="This may significantly extend the tool execution time">
+            <option value="yes">Yes</option>
+            <option value="no" selected="true">No</option>
+        </param>
     </inputs>
     <outputs>
         <data name="output" label="${tool.name} execution log" format="txt" />
     </outputs>
     <tests>
+        <test>
+            <!--Testing this tool is a bit difficult at the current time.-->
+        </test>
     </tests>
     <help>
 **What it does**
 
-Uses the Galaxy API to execute the complete multilocus genotype analysis pipeline for corals or symbiants.
-This tool must be able to access the corals (stag) database
+Uses the Galaxy/Bioblend API to execute the complete multilocus genotype analysis pipeline for corals or symbionts.
+Read this tutorial_ if you are not familiar with this tool.  This tool must be able to access the corals (stag) database.
+
+.. _tutorial: https://github.com/gregvonkuster/galaxy_tools/blob/master/docs/corals/coralsnp_tutorial.md
+
+**Required options**
+
+ * **Affymetrix 96 well plate metadata file** - a tabular file created by the user to describe their samples - it can be exported from Excel using this example as a template: http://baumslab.org/documents/SNPChip/STAG_Metadata_Template_v3.xlsm
+ * **Sample attributes file** - the Sample Attributes tabular file created by the Affymetrix sequencer for the plate
+ * **Probeset annotation file** - the annotation CSV file created by the Affymetrix sequencer for the plate
+ * **Apt-probeset genotype summary file** - the summary CSV file created by the Affymetrix sequencer for the plate
+ * **Apt-probeset genotype snp-posteriors file** - the snp-posteriors CSV file created by the Affymetrix sequencer for the plate
+ * **Apt-probeset genotype report file** - the report CSV file created by the Affymetrix sequencer for the plate
+ * **Apt-probeset genotype confidences file** - the confidences CSV file created by the Affymetrix sequencer for the plate
+ * **Apt-probeset genotype calls file** - the calls CSV file created by the Affymetrix sequencer for the plate
+ * **Fasta reference sequence** - selected fasta reference dataset for the samples
 
     </help>
     <citations>
-        <citation type="bibtex">
-            @misc{None,
-            journal = {None},
-            author = {Baums I},
-            title = {Manuscript in preparation},
-            year = {None},
-            url = {http://baumslab.org}
-        </citation>
+        <citation type="doi">https://doi.org/10.1038/s41598-020-69101-z</citation>
     </citations>
 </tool>
 

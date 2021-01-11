@@ -14,8 +14,7 @@ python $__tool_directory__/genotype_population_info.py
     </outputs>
     <tests>
         <test>
-            <param name="input_partial_info" value="input.tabular" ftype="tabular"/>
-            <output name="output" file="output.tabular" ftype="tabular"/>
+            <!--Testing this tool is a bit difficult at the current time.-->
         </test>
     </tests>
     <help>
@@ -24,18 +23,11 @@ python $__tool_directory__/genotype_population_info.py
 Accepts a file that contains Affymetrix identifiers and a subset of the user specimen identifiers and
 regions for genotyping.  The corals (stag) database is queried to retrieve the user specimen identifiers
 and regions that are missing for each Affymetrix identifier, and a complete set of genotype population
-information is produced for use as input to the Corals Multilocus Genotype tool.  This tool must be able
-to access the stag database.
+information is produced for use as input to the Coral Multilocus Genotype tool.  This tool must be able
+to access the corals (stag) database.
     </help>
     <citations>
-        <citation type="bibtex">
-            @misc{None,
-            journal = {None},
-            author = {Baums I},
-            title = {Manuscript in preparation},
-            year = {None},
-            url = {http://baumslab.org}
-        </citation>
+        <citation type="doi">https://doi.org/10.1038/s41598-020-69101-z</citation>
     </citations>
 </tool>
 

@@ -15,7 +15,7 @@ parser.add_argument('--output', dest='output', help='Output dataset'),
 args = parser.parse_args()
 
 EMAIL_MAX_LEN = 255
-VALID_EMAIL_RE = re.compile("[^@]+@[^@]+\.[^@]+")
+VALID_EMAIL_RE = re.compile(r'[^@]+@[^@]+\.[^@]+')
 
 
 def add_error_msg(accumulated_msgs, msg):
@@ -74,9 +74,6 @@ with open(args.input, "r") as ih:
         # Keep 1-based line value for error messages.
         line_no = i + 1
         line = line.rstrip("\r\n")
-        if i > 97:
-            accumulated_msgs = add_error_msg(accumulated_msgs, "The input file contains more than 97 lines (must be 1 header line and no more than 96 data lines).")
-            stop_error(accumulated_msgs)
         items = line.split("\t")
         if len(items) != 32:
             accumulated_msgs = add_error_msg(accumulated_msgs, "Line %d contains %s columns, (must be 32)." % (line_no, len(items)))
@@ -110,8 +107,10 @@ with open(args.input, "r") as ih:
         geographic_origin = items[8]
         # Optional.
         colony_location = items[9]
-        # Optional.
         depth = items[10]
+        # If depth has a value, then it must be a decimal.
+        if len(depth) > 0:
+            accumulated_msgs = validate_decimal(line_no, depth, "depth", accumulated_msgs)
         # Optional.
         disease_resist = items[11]
         # Optional.

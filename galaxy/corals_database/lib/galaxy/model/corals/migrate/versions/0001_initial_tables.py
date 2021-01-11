@@ -72,7 +72,7 @@ Colony_table = Table("colony", metadata,
                      Column("update_time", DateTime, default=now, onupdate=now),
                      Column("latitude", Numeric(15, 6)),
                      Column("longitude", Numeric(15, 6)),
-                     Column("depth", Integer),
+                     Column("depth", Numeric(15, 6)),
                      Column("reef_id", Integer, ForeignKey("reef.id"), index=True))
 
 
@@ -149,7 +149,11 @@ ProbeAnnotation_table = Table("probe_annotation", metadata,
                               Column("pconvert", TrimmedString(255)),
                               Column("recommendation", TrimmedString(255)),
                               Column("refstr", TrimmedString(255)),
-                              Column("snppriority", TrimmedString(255)))
+                              Column("snppriority", TrimmedString(255)),
+                              Column("genotype_probe", TrimmedString(255)),
+                              Column("fixed_status", TrimmedString(255)),
+                              Column("acerv_allele", TrimmedString(255)))
+
 
 
 Reef_table = Table("reef", metadata,
@@ -180,16 +184,16 @@ Sample_table = Table("sample", metadata,
                      Column("collection_date", DateTime),
                      Column("user_specimen_id", TrimmedString(255)),
                      Column("registry_id", TrimmedString(255)),
-                     Column("depth", Integer),
+                     Column("depth", Numeric(15, 6)),
                      Column("dna_extraction_method", TrimmedString(255)),
                      Column("dna_concentration", Numeric(10, 6)),
                      Column("public", Boolean),
                      Column("public_after_date", DateTime, default=year_from_now),
                      Column("percent_missing_data_coral", Numeric(15, 6)),
                      Column("percent_missing_data_sym", Numeric(15, 6)),
-                     Column("percent_reference_coral", Numeric(15, 6)),
+                     Column("percent_acerv_coral", Numeric(15, 6)),
                      Column("percent_reference_sym", Numeric(15, 6)),
-                     Column("percent_alternative_coral", Numeric(15, 6)),
+                     Column("percent_apalm_coral", Numeric(15, 6)),
                      Column("percent_alternative_sym", Numeric(15, 6)),
                      Column("percent_heterozygous_coral", Numeric(15, 6)),
                      Column("percent_heterozygous_sym", Numeric(15, 6)),
@@ -298,8 +302,9 @@ def load_probe_annotation_table(migrate_engine):
     # probeset_id, affy_snp_id, chr_id, start, strand,
     # flank, allele_a, allele_b, allele_frequencies, annotation_notes, allele_count,
     # ordered_alleles, chrtype, custchr, custid, custpos,
-    # organism, pconvert, recommendation, refstr, snppriority
-    base_cmd = "INSERT INTO probe_annotation VALUES (%s, %s, %s, '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')"
+    # organism, pconvert, recommendation, refstr, snppriority,
+    # genotype_probe, fixed_status, acerv_allele
+    base_cmd = "INSERT INTO probe_annotation VALUES (%s, %s, %s, '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')"
 
     with open(PROBE_ANNOTATION_DATA_FILE, "r") as fh:
         for i, line in enumerate(fh):
@@ -329,6 +334,9 @@ def load_probe_annotation_table(migrate_engine):
             recommendation = items[37]
             refstr = items[38]
             snppriority = items[39]
+            genotype_probe = items[40]
+            fixed_status = items[41]
+            acerv_allele = items[42]
             cmd = base_cmd % (nextval(migrate_engine, 'probe_annotation'),
                               localtimestamp(migrate_engine),
                               localtimestamp(migrate_engine),
@@ -352,7 +360,10 @@ def load_probe_annotation_table(migrate_engine):
                               pconvert,
                               recommendation,
                               refstr,
-                              snppriority)
+                              snppriority,
+                              genotype_probe,
+                              fixed_status,
+                              acerv_allele)
             migrate_engine.execute(cmd)
     print("Inserted %d rows into the probe_annotation table." % i)
 
@@ -404,7 +415,7 @@ def load_general_seed_data(migrate_engine):
     # [15]mortality [16]tle [17]spawning [18]collector_last_name [19]collector_first_name
     # [20]organization [21]collection_date [22]email [23]seq_facility [24]array_version
     # [25]public [26]public_after_date [27]coral_mlg_clonal_id [28]symbio_mlg_clonal_id [29]genetic_coral_species_call
-    # [30]percent_missing_data_coral [31]percent_reference_coral [32]percent_alternative_sym [33]percent_heterozygous_coral [34]affy_id
+    # [30]percent_missing_data_coral [31]percent_heterozygous_coral [32]percent_acerv_coral [33]percent_apalm_coral [34]affy_id
     # [35]coral_mlg_rep_sample_id [36]genus_name [37]species [38]sperm_motility [39]healing_time
     # [40]dna_extraction_method [41]dna_concentration [42]registry_id
 
@@ -441,10 +452,11 @@ def load_general_seed_data(migrate_engine):
                 bcoral_genet_id = ''
             else:
                 bcoral_genet_id = handle_column_value(items[2])
-            if len(items[3]) == 0:
-                bsym_genet_id = ''
-            else:
-                bsym_genet_id = handle_column_value(items[3])
+            # No longer inserted.
+            # if len(items[3]) == 0:
+            #     bsym_genet_id = ''
+            # else:
+            #     bsym_genet_id = handle_column_value(items[3])
             reef = handle_column_value(items[4])
             region = handle_column_value(items[5])
             try:
@@ -469,9 +481,9 @@ def load_general_seed_data(migrate_engine):
             else:
                 colony_location = items[9]
             try:
-                depth = int(items[12])
+                depth = "%6f" % float(items[12])
             except Exception:
-                depth = 0
+                depth = -9.0
             disease_resist = items[13]
             bleach_resist = items[14]
             mortality = items[15]
@@ -485,7 +497,11 @@ def load_general_seed_data(migrate_engine):
                 collection_date = convert_date_string_for_database(items[21])
             except Exception:
                 collection_date = localtimestamp(migrate_engine)
-            email = handle_column_value(items[22], default="%s@unknown.org" % sample_id)
+            # There are 3 blank email addresses in the seed data, all of which
+            # have organization TNC_ARRA, so we'll assume the samples should
+            # all be associated with the same email address.
+            missing_email = "unknown@%s.org" % organization.lower()
+            email = handle_column_value(items[22], default=missing_email)
             seq_facility = items[23]
             array_version = handle_column_value(items[24])
             # Convert original public value to Boolean.
@@ -499,24 +515,25 @@ def load_general_seed_data(migrate_engine):
                 else:
                     public_after_date = convert_date_string_for_database(items[26])
             coral_mlg_clonal_id = handle_column_value(items[27])
-            symbio_mlg_clonal_id = handle_column_value(items[28])
+            # No longer used.
+            # symbio_mlg_clonal_id = handle_column_value(items[28])
             genetic_coral_species_call = handle_column_value(items[29])
             try:
                 percent_missing_data_coral = "%6f" % float(items[30])
             except Exception:
                 percent_missing_data_coral = DEFAULT_MISSING_NUMERIC_VALUE
             try:
-                percent_reference_coral = "%6f" % float(items[31])
-            except Exception:
-                percent_reference_coral = DEFAULT_MISSING_NUMERIC_VALUE
-            try:
-                percent_alternative_sym = "%6f" % float(items[32])
-            except Exception:
-                percent_alternative_sym = DEFAULT_MISSING_NUMERIC_VALUE
-            try:
-                percent_heterozygous_coral = "%6f" % float(items[33])
+                percent_heterozygous_coral = "%6f" % float(items[31])
             except Exception:
                 percent_heterozygous_coral = DEFAULT_MISSING_NUMERIC_VALUE
+            try:
+                percent_acerv_coral = "%6f" % float(items[32])
+            except Exception:
+                percent_acerv_coral = DEFAULT_MISSING_NUMERIC_VALUE
+            try:
+                percent_apalm_coral = "%6f" % float(items[33])
+            except Exception:
+                percent_apalm_coral = DEFAULT_MISSING_NUMERIC_VALUE
             affy_id = items[34]
             if len(items[35]) == 0:
                 coral_mlg_rep_sample_id = ''
@@ -724,14 +741,14 @@ def load_general_seed_data(migrate_engine):
             cmd = "SELECT id FROM sample WHERE sample_id = '%s'" % sample_id
             sample_id_db = get_primary_id(migrate_engine, table, cmd)
             if sample_id_db is None:
-                # We set allele_id top NULL here since we process the
+                # We set allele_id to NULL here since we process the
                 # allele data after the general seed data.  When the
-                # allele data is processed, this column value will ne
+                # allele data is processed, this column value will be
                 # updated with the foreign key value.
                 allele_id = sql.null()
                 percent_missing_data_sym = DEFAULT_MISSING_NUMERIC_VALUE
                 percent_reference_sym = DEFAULT_MISSING_NUMERIC_VALUE
-                percent_alternative_coral = DEFAULT_MISSING_NUMERIC_VALUE
+                percent_alternative_sym = DEFAULT_MISSING_NUMERIC_VALUE
                 percent_heterozygous_sym = DEFAULT_MISSING_NUMERIC_VALUE
                 # id, create_time, update_time, affy_id, sample_id,
                 # allele_id, genotype_id, phenotype_id, experiment_id, colony_id,
@@ -744,8 +761,8 @@ def load_general_seed_data(migrate_engine):
                     # collection_date
                     cmd += "'%s', "
                 # user_specimen_id, registry_id, depth, dna_extraction_method, dna_concentration,
-                # public, public_after_date, percent_missing_data_coral, percent_missing_data_sym, percent_reference_coral,
-                # percent_reference_sym, percent_alternative_coral, percent_alternative_sym, percent_heterozygous_coral, percent_heterozygous_sym,
+                # public, public_after_date, percent_missing_data_coral, percent_missing_data_sym, percent_acerv_coral,
+                # percent_reference_sym, percent_apalm_coral, percent_alternative_sym, percent_heterozygous_coral, percent_heterozygous_sym,
                 # field_call, bcoral_genet_id
                 cmd += "'%s', '%s', %s, '%s', %s, %s, '%s', %s, '%s', %s, '%s', '%s', '%s', %s, '%s', '%s', '%s')"
                 cmd = cmd % (nextval(migrate_engine, table),
@@ -771,9 +788,9 @@ def load_general_seed_data(migrate_engine):
                              public_after_date,
                              percent_missing_data_coral,
                              percent_missing_data_sym,
-                             percent_reference_coral,
+                             percent_acerv_coral,
                              percent_reference_sym,
-                             percent_alternative_coral,
+                             percent_apalm_coral,
                              percent_alternative_sym,
                              percent_heterozygous_coral,
                              percent_heterozygous_sym,

@@ -52,7 +52,7 @@ corals_model.Colony.table = Table("colony", metadata,
     Column("update_time", DateTime, default=now, onupdate=now),
     Column("latitude", Numeric(15, 6)),
     Column("longitude", Numeric(15, 6)),
-    Column("depth", Integer),
+    Column("depth", Numeric(15, 6)),
     Column("reef_id", Integer, ForeignKey("reef.id"), index=True))
 
 corals_model.Experiment.table = Table("experiment", metadata,
@@ -124,7 +124,10 @@ corals_model.ProbeAnnotation.table = Table("probe_annotation", metadata,
     Column("pconvert", TrimmedString(255)),
     Column("recommendation", TrimmedString(255)),
     Column("refstr", TrimmedString(255)),
-    Column("snppriority", TrimmedString(255)))
+    Column("snppriority", TrimmedString(255)),
+    Column("genotype_probe", TrimmedString(255)),
+    Column("fixed_status", TrimmedString(255)),
+    Column("acerv_allele", TrimmedString(255)))
 
 corals_model.Reef.table = Table("reef", metadata,
     Column("id", Integer, primary_key=True),
@@ -153,16 +156,16 @@ corals_model.Sample.table = Table("sample", metadata,
     Column("collection_date", DateTime),
     Column("user_specimen_id", TrimmedString(255)),
     Column("registry_id", TrimmedString(255)),
-    Column("depth", Integer),
+    Column("depth", Numeric(15, 6)),
     Column("dna_extraction_method", TrimmedString(255)),
     Column("dna_concentration", Numeric(10, 6)),
     Column("public", Boolean),
     Column("public_after_date", DateTime, default=year_from_now),
     Column("percent_missing_data_coral", Numeric(15, 6)),
     Column("percent_missing_data_sym", Numeric(15, 6)),
-    Column("percent_reference_coral", Numeric(15, 6)),
+    Column("percent_acerv_coral", Numeric(15, 6)),
     Column("percent_reference_sym", Numeric(15, 6)),
-    Column("percent_alternative_coral", Numeric(15, 6)),
+    Column("percent_apalm_coral", Numeric(15, 6)),
     Column("percent_alternative_sym", Numeric(15, 6)),
     Column("percent_heterozygous_coral", Numeric(15, 6)),
     Column("percent_heterozygous_sym", Numeric(15, 6)),
@@ -244,6 +247,7 @@ mapper(corals_model.Sample, corals_model.Sample.table, properties=dict(
                        primaryjoin=(corals_model.Sample.table.c.collector_id == corals_model.Person.table.c.id))))
 
 mapper(corals_model.Taxonomy, corals_model.Taxonomy.table, properties=None)
+
 
 def init(url, engine_options={}, create_tables=False):
     """Connect mappings to the database"""

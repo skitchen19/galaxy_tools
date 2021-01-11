@@ -1,0 +1,103 @@
+<tool id="methylit_get_geo_supp_files" name="MethylIT: Get GEO supplemental file" version="1.0.0">
+    <description></description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="4.3">r-curl</requirement>
+        <requirement type="package" version="1.4.2">r-fs</requirement>
+        <requirement type="package" version="0.3.2.1">r-methylit</requirement>
+        <requirement type="package" version="1.6.6">r-optparse</requirement>
+        <requirement type="package" version="2.9.2">r-r.utils</requirement>
+        <requirement type="package" version="3.99_0.3">r-xml</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+#if str($geo).find(",") == -1:
+    #set single_output = True
+#else:
+    #set single_output = False
+#end if
+#set output_data_dir='output_data_dir'
+mkdir output_data_dir &&
+Rscript '$__tool_directory__/methylit_get_geo_supp_files.R'
+--geo '$geo'
+#if $pattern and str($pattern) != '':
+    --pattern '$pattern'
+#end if
+#if $single_output:
+    --output '$output'
+#end if
+--output_dir '$output_data_dir'
+--script_dir '$__tool_directory__'
+#if str($output_log_cond.output_log) == 'yes':
+    &>'$output_log';
+#else:
+    &>output_log.txt;
+    if [[ $? -ne 0 ]]; then
+        #if $single_output:
+            cp output_log.txt '$output';
+        #else:
+            cp output_log.txt $output_data_dir/output_log.txt;
+        #end if
+    fi
+#end if]]></command>
+    <inputs>
+        <param name="geo" type="text" label="GEO accession number(s)" help="Enter comma-separated list of GEO accession numbers">
+            <validator type="empty_field"/>
+            <sanitizer invalid_char="">
+                <valid initial="string.ascii_letters,string.digits">
+                    <add value=","/>
+                    <add value="_"/>
+                </valid>
+            </sanitizer>
+        </param>
+        <param name="pattern" type="text" value="" label="Optional pattern for the name of the supplementary files from the GEO dataset">
+            <sanitizer invalid_char="">
+                <valid initial="string.ascii_letters,string.digits">
+                    <add value="_"/>
+                </valid>
+            </sanitizer>
+        </param>
+        <conditional name="output_log_cond">
+            <param name="output_log" type="select" label="Output process log?">
+                <option value="yes" selected="true">Yes</option>
+                <option value="no">No</option>
+            </param>
+            <when value="yes"/>
+            <when value="no"/>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data name="output_log" format="txt" label="${tool.name} (process log) on ${on_string}">
+            <filter>output_log_cond['output_log'] == 'yes'</filter>
+        </data>
+        <data name="output" format="tabular">
+            <filter>geo.find(",") == -1</filter>
+        </data>
+        <collection name="output_collection" type="list">
+            <discover_datasets pattern="__name__" directory="output_data_dir" format="tabular"/>
+            <filter>geo.find(",") > 0</filter>
+        </collection>
+    </outputs>
+    <tests>
+    </tests>
+    <help>
+**What it does**
+
+aDownload supplemental files from a specified GEO dataset.
+
+Embryonic stem cells datasets
+
+ - GSM2041690
+ - GSM2041691
+ - GSM2041692
+
+ Breast tissues (normal, cancer, metastasis)
+
+ - GSM1279517
+ - GSM1279514
+ - GSM1279513
+    </help>
+    <expand macro="citations"/>
+</tool>
+
